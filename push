@@ -1,0 +1,59 @@
+#!/bin/bash
+
+RED='\033[0;31m'
+GREEN='\033[0;32m'
+NC='\033[0m'
+CYAN='\033[36m'
+BOLD='\033[1m'
+
+show_spinner()
+{
+  tput civis      -- invisible
+  PID=$!
+  i=1
+  sp="/-\|"
+  echo -n ' '
+  while [ -d /proc/$PID ]
+  do
+    printf "\b${sp:i++%${#sp}:1}"
+    sleep 0.1
+  done
+  tput cnorm   -- normal
+}
+
+error_gestion()
+{
+  if [[ $1 < 2 ]]
+  then
+    printf "${RED}${BOLD}Usage : ./push [file1] [file2] [file3] ... [commit]\n${NC}"
+    exit
+  fi
+  yourfilenames=`ls -f .`
+  for eachfile in $yourfilenames
+  do
+    if [ "$eachfile" = ".git" ] ; then
+        return
+    fi
+  done
+  echo -e "${RED}${BOLD}✗ Error : You are no't in a repository !${NC}"
+  exit
+}
+
+error_gestion $#
+array=${@:1:$#-1}
+printf "${CYAN}${BOLD}Adding and pushing :${GREEN}${BOLD}"
+for arg in $array; do
+  printf " $arg"
+done
+printf "${CYAN}${BOLD}\nCommit : ${GREEN}${BOLD}${@: -1}${CYAN}${BOLD}\n"
+printf "Confirmer (Y/n) : ${NC}"
+read -n1 input
+[ "$input" == "n" ] && echo && exit
+[ -z "$input" ] || printf "\n"
+printf "${CYAN}${BOLD}Adding and pushing\n"
+for arg in $array; do
+  git add $arg  > /dev/null
+done
+git commit -m ${@: -1} -q
+git push & show_spinner
+printf "${NC}"
